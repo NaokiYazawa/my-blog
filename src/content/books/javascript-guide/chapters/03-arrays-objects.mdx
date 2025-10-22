@@ -1,0 +1,107 @@
+---
+title: 配列とオブジェクト
+description: JavaScriptの配列とオブジェクトの操作方法を詳しく学習します
+order: 3
+published: true
+---
+
+JavaScriptの配列とオブジェクトの詳細な操作方法について学習します。
+
+## 配列（Array）
+
+配列は複数の要素を順序付けて格納するデータ構造です。
+
+### 配列の作成
+
+```javascript
+// 配列リテラル
+const fruits = ["apple", "banana", "orange"];
+
+// Array コンストラクタ
+const numbers = new Array(1, 2, 3, 4, 5);
+
+// 空の配列
+const empty = [];
+```
+
+### 配列の操作
+
+```javascript
+const colors = ["red", "green", "blue"];
+
+// 要素の追加
+colors.push("yellow");         // 末尾に追加
+colors.unshift("purple");      // 先頭に追加
+
+// 要素の削除
+colors.pop();                  // 末尾から削除
+colors.shift();                // 先頭から削除
+
+// 要素のアクセス
+console.log(colors[0]);        // 最初の要素
+console.log(colors.length);    // 配列の長さ
+```
+
+## オブジェクト（Object）
+
+オブジェクトはキーと値のペアでデータを格納します。
+
+### オブジェクトの作成
+
+```javascript
+// オブジェクトリテラル
+const person = {
+  name: "太郎",
+  age: 25,
+  city: "東京"
+};
+
+// Object コンストラクタ
+const car = new Object();
+car.brand = "Toyota";
+car.model = "Prius";
+```
+
+### オブジェクトの操作
+
+```javascript
+const student = {
+  name: "花子",
+  age: 20,
+  subjects: ["数学", "物理", "化学"]
+};
+
+// プロパティの追加・変更
+student.grade = "A";
+student["university"] = "東京大学";
+
+// プロパティの削除
+delete student.age;
+
+// プロパティの存在確認
+console.log("name" in student);     // true
+console.log(student.hasOwnProperty("grade")); // true
+```
+
+## 配列とオブジェクトの組み合わせ
+
+```javascript
+const users = [
+  { name: "太郎", age: 25, role: "developer" },
+  { name: "花子", age: 23, role: "designer" },
+  { name: "次郎", age: 28, role: "manager" }
+];
+
+// 配列のメソッド
+const developers = users.filter(user => user.role === "developer");
+const names = users.map(user => user.name);
+const totalAge = users.reduce((sum, user) => sum + user.age, 0);
+
+console.log(developers);
+console.log(names);
+console.log(totalAge);
+```
+
+## まとめ
+
+この章では配列とオブジェクトの詳細な操作方法について学習しました。これらのデータ構造を理解することで、より複雑なデータの処理が可能になります。

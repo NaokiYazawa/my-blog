@@ -1,0 +1,185 @@
+---
+title: 制御構文とループ
+description: JavaScriptの条件分岐とループ処理について学習します
+order: 4
+published: true
+---
+
+JavaScriptにおける制御構文とループ処理について詳しく学習します。
+
+## 条件分岐
+
+### if文
+
+```javascript
+const age = 20;
+
+if (age >= 18) {
+  console.log("成人です");
+} else {
+  console.log("未成年です");
+}
+
+// 複数条件
+const score = 85;
+
+if (score >= 90) {
+  console.log("優秀");
+} else if (score >= 70) {
+  console.log("良好");
+} else if (score >= 60) {
+  console.log("合格");
+} else {
+  console.log("不合格");
+}
+```
+
+### switch文
+
+```javascript
+const day = "月曜日";
+
+switch (day) {
+  case "月曜日":
+    console.log("週の始まり");
+    break;
+  case "金曜日":
+    console.log("週末前");
+    break;
+  case "土曜日":
+  case "日曜日":
+    console.log("週末");
+    break;
+  default:
+    console.log("平日");
+}
+```
+
+### 三項演算子
+
+```javascript
+const isLoggedIn = true;
+const message = isLoggedIn ? "ログイン済み" : "未ログイン";
+console.log(message);
+
+// ネストした三項演算子
+const temperature = 25;
+const weather = temperature > 30 ? "暑い" : temperature > 20 ? "快適" : "寒い";
+```
+
+## ループ処理
+
+### for文
+
+```javascript
+// 基本的なfor文
+for (let i = 0; i < 5; i++) {
+  console.log(`回数: ${i}`);
+}
+
+// 配列のループ
+const colors = ["赤", "青", "緑"];
+for (let i = 0; i < colors.length; i++) {
+  console.log(colors[i]);
+}
+```
+
+### for...of文
+
+```javascript
+const fruits = ["りんご", "バナナ", "オレンジ"];
+
+for (const fruit of fruits) {
+  console.log(fruit);
+}
+
+// 文字列のループ
+for (const char of "Hello") {
+  console.log(char);
+}
+```
+
+### for...in文
+
+```javascript
+const person = {
+  name: "太郎",
+  age: 25,
+  city: "東京"
+};
+
+for (const key in person) {
+  console.log(`${key}: ${person[key]}`);
+}
+```
+
+### while文とdo...while文
+
+```javascript
+// while文
+let count = 0;
+while (count < 3) {
+  console.log(`カウント: ${count}`);
+  count++;
+}
+
+// do...while文
+let num = 0;
+do {
+  console.log(`番号: ${num}`);
+  num++;
+} while (num < 3);
+```
+
+## 制御文
+
+### break文とcontinue文
+
+```javascript
+// break文 - ループを終了
+for (let i = 0; i < 10; i++) {
+  if (i === 5) {
+    break;
+  }
+  console.log(i);
+}
+
+// continue文 - 現在の反復をスキップ
+for (let i = 0; i < 5; i++) {
+  if (i === 2) {
+    continue;
+  }
+  console.log(i);
+}
+```
+
+## 実践例
+
+```javascript
+// 配列の要素を条件に応じて処理
+const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const evenNumbers = [];
+const oddNumbers = [];
+
+for (const num of numbers) {
+  if (num % 2 === 0) {
+    evenNumbers.push(num);
+  } else {
+    oddNumbers.push(num);
+  }
+}
+
+console.log("偶数:", evenNumbers);
+console.log("奇数:", oddNumbers);
+
+// ネストしたループ
+for (let i = 1; i <= 3; i++) {
+  for (let j = 1; j <= 3; j++) {
+    console.log(`${i} × ${j} = ${i * j}`);
+  }
+}
+```
+
+## まとめ
+
+この章では制御構文とループ処理について学習しました。これらの概念を理解することで、プログラムの流れを制御し、効率的なコードを書くことができるようになります。

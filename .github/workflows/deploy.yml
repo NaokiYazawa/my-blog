@@ -1,0 +1,152 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# 並行ビルドの制御
+# 根拠: 同じブランチから複数の push が発生した場合、リソースを効率化
+# PR の場合は新しいコミットで古いデプロイをキャンセルし、main の場合は順序を保証
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  deploy:
+    # Draft PR をスキップしてリソースを節約
+    # 根拠: GitHub Actions ベストプラクティス - 開発中の不完全な状態でのデプロイを避ける
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Deploy
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # 依存関係のインストール
+      # postinstall で contentlayer2 build が自動実行される
+      - name: Install dependencies
+        run: npm ci
+
+      # Contentlayer のビルド検証
+      # 根拠: postinstall で実行されるビルドの成功を確認し、早期にエラーを検出
+      - name: Verify Contentlayer build
+        run: |
+          if [ ! -d ".contentlayer" ]; then
+            echo "❌ Error: Contentlayer build failed"
+            exit 1
+          fi
+          echo "✅ Contentlayer generated $(find .contentlayer -name '*.json' | wc -l) documents"
+
+      # Next.js ビルドキャッシュの復元
+      # 根拠: GitHub Actions ベストプラクティス - ビルド時間を 30-40% 削減
+      # .next/cache をキャッシュすることで、増分ビルドが高速化される
+      # キャッシュ戦略:
+      # - key: 依存関係 (package-lock.json) が変更されたときのみ新しいキャッシュを作成
+      # - restore-keys: 依存関係が同じなら過去のビルドキャッシュを再利用
+      # - Next.js の増分ビルド機能により、ソースコード変更時も高速にビルド可能
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-
+
+      # OpenNext Cloudflare ビルド
+      # 根拠: OpenNext 公式ドキュメント (Trust Score: 7.4)
+      # - 公式では "npx opennextjs-cloudflare build" を単独で使用
+      # - SKIP_NEXT_APP_BUILD 環境変数の存在から、内部で next build も実行される
+      # - package.json の "preview" と "deploy" スクリプトも同様に単独で使用
+      # 重要: npm run build を削除し、opennextjs-cloudflare build のみ実行
+      - name: Build for Cloudflare
+        run: npx opennextjs-cloudflare build
+        env:
+          NODE_ENV: production
+
+      # ビルド成果物の確認
+      # 根拠: デプロイ前に必須ファイルの存在を確認し、早期にエラーを検出
+      - name: Verify build output
+        run: |
+          if [ ! -f ".open-next/worker.js" ]; then
+            echo "❌ Error: OpenNext build failed - worker.js not found"
+            exit 1
+          fi
+          echo "✅ Build output verified"
+          echo "Worker size: $(du -h .open-next/worker.js | cut -f1)"
+          echo "Assets directory size: $(du -sh .open-next/assets | cut -f1)"
+
+      # Cloudflare Workers にデプロイ
+      # 根拠: cloudflare/wrangler-action 公式ドキュメント (Trust Score: 9.3)
+      # - gitHubToken を設定することで GitHub Deployments が有効になる
+      # - "Optional: Enable this if you want to have GitHub Deployments triggered"
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+          # GitHub Deployments を有効化
+          # 効果: GitHub UI でデプロイ履歴を確認可能、デプロイ URL が表示される
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        id: deploy
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # デプロイ結果を PR にコメント（成功/失敗両方）
+      # 根拠: GitHub Actions ベストプラクティス - 常にフィードバックを提供
+      # always() を使用することで、デプロイが失敗した場合も実行される
+      - name: Comment deployment status on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const deploymentUrl = '${{ steps.deploy.outputs.deployment-url }}';
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            let body;
+            if (status === 'success' && deploymentUrl) {
+              body = `✅ **デプロイ完了**\n\n🔗 ${deploymentUrl}`;
+            } else if (status === 'success') {
+              body = `⚠️ デプロイは完了しましたが、URL を取得できませんでした。\n\n[ログを確認](${runUrl})`;
+            } else {
+              body = `❌ **デプロイ失敗**\n\n[ログを確認](${runUrl})してエラーを確認してください。`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # デバッグ用: ビルド成果物をアップロード（失敗時のみ）
+      # 根拠: GitHub Actions ベストプラクティス - デバッグの容易性向上
+      # エラー発生時に .next、.open-next、.contentlayer を確認できる
+      - name: Upload build artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ github.sha }}
+          path: |
+            .next/
+            .open-next/
+            .contentlayer/
+          retention-days: 7

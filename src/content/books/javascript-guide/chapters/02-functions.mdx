@@ -1,0 +1,61 @@
+---
+title: 関数とスコープ
+description: JavaScriptの関数定義とスコープの概念を習得します
+order: 2
+published: true
+---
+
+JavaScriptにおける関数の定義方法とスコープについて学習します。
+
+## 関数の定義
+
+JavaScriptでは複数の方法で関数を定義できます：
+
+### 関数宣言
+
+```javascript
+function greet(name) {
+  return `Hello, ${name}!`;
+}
+```
+
+### 関数式
+
+```javascript
+const greet = function(name) {
+  return `Hello, ${name}!`;
+};
+```
+
+### アロー関数
+
+```javascript
+const greet = (name) => {
+  return `Hello, ${name}!`;
+};
+```
+
+## スコープ
+
+JavaScriptには以下のスコープがあります：
+
+- グローバルスコープ
+- 関数スコープ
+- ブロックスコープ
+
+```javascript
+let globalVar = "グローバル";
+
+function example() {
+  let functionVar = "関数スコープ";
+  
+  if (true) {
+    let blockVar = "ブロックスコープ";
+    console.log(globalVar, functionVar, blockVar);
+  }
+}
+```
+
+## まとめ
+
+この章では関数とスコープについて学習しました。これらの概念は効果的なJavaScriptプログラミングの基礎となります。

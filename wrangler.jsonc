@@ -1,10 +1,18 @@
 {
-  "main": ".open-next/worker.js",
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "my-blog",
-  "compatibility_date": "2025-03-25",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
-  }
+  },
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "my-blog-cache",
+      "preview_bucket_name": "my-blog-cache-preview"
+    }
+  ]
 }
