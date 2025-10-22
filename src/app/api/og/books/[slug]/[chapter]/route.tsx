@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { allBooks, allChapters } from "contentlayer/generated";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
+import { getLogoDataURL } from "@/lib/og-assets";
 
 // ✅ Node.js Runtime を明示的に指定（OpenNext Cloudflare互換）
 export const runtime = "nodejs";
@@ -33,20 +32,16 @@ export async function GET(
     // does not properly support fontWeight changes with variable fonts.
     // This URL is a static Bold (700) only font extracted from Google Fonts API
 
-    // ✅ CLOUDFLARE WORKERS COMPATIBLE: Read logo from filesystem
-    // IMPORTANT: In Cloudflare Workers, HTTP fetch to the same origin does not work for static assets
-    // because Workers and static assets are handled by different systems.
-    // Next.js official docs recommend using fs/promises to read local assets.
-    // Reference: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
-    const [notoSansJPRes, logoData] = await Promise.all([
-      fetch(
-        // Static Noto Sans JP Bold (700) ONLY - NOT variable font
-        // This static font is required because ImageResponse (Satori engine)
-        // does not properly support fontWeight with variable fonts
-        "https://fonts.gstatic.com/s/notosansjp/v55/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf"
-      ),
-      readFile(join(process.cwd(), "public/_static/logo-light.png"), "base64"),
-    ]);
+    // ✅ CLOUDFLARE WORKERS COMPATIBLE: Use embedded base64 logo
+    // IMPORTANT: In Cloudflare Workers (V8 isolate), filesystem access via fs/promises is not reliable.
+    // Logo is pre-embedded as base64 in @/lib/og-assets.ts to eliminate runtime filesystem dependency.
+    // This ensures consistent behavior across all deployment environments.
+    const notoSansJPRes = await fetch(
+      // Static Noto Sans JP Bold (700) ONLY - NOT variable font
+      // This static font is required because ImageResponse (Satori engine)
+      // does not properly support fontWeight with variable fonts
+      "https://fonts.gstatic.com/s/notosansjp/v55/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf"
+    );
 
     if (!notoSansJPRes.ok) {
       console.error(`Fetch failed: NotoSansJP=${notoSansJPRes.status}`);
@@ -55,10 +50,9 @@ export async function GET(
 
     const notoSansJP = await notoSansJPRes.arrayBuffer();
 
-    // Convert logo to base64 Data URL for ImageResponse
+    // Get logo as Data URL for ImageResponse
     // IMPORTANT: Satori (ImageResponse engine) accepts base64 Data URL for <img> src
-    // Official docs: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
-    const logoSrc = `data:image/png;base64,${logoData}`;
+    const logoSrc = getLogoDataURL();
 
     // Dynamic font size based on title length for optimal readability
     // Book title: smaller, gray, provides context
