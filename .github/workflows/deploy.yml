@@ -79,6 +79,7 @@ jobs:
         run: npx opennextjs-cloudflare build
         env:
           NODE_ENV: production
+          NEXT_PUBLIC_APP_URL: ${{ secrets.APP_URL }}
 
       # ビルド成果物の確認
       # 根拠: デプロイ前に必須ファイルの存在を確認し、早期にエラーを検出
