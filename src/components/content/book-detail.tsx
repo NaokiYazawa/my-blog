@@ -30,7 +30,7 @@ export function BookDetail({
         <div className="flex items-center flex-wrap gap-2">
           <Link
             key={category}
-            href={`/articles/category/${category}`}
+            href={`/books/category/${category}`}
             className={cn(
               buttonVariants({
                 variant: "outline",
