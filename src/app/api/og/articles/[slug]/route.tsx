@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { allPosts } from "contentlayer/generated";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
@@ -22,36 +24,33 @@ export async function GET(
     // IMPORTANT: The previous variable font URL did not work because ImageResponse (Satori)
     // does not properly support fontWeight changes with variable fonts.
     // This URL is a static Bold (700) only font extracted from Google Fonts API
-    // Fetch logo from public URL (OpenNext Cloudflare compatible)
-    // Using light logo for light background OG image
-    const origin = new URL(request.url).origin;
-    const logoUrl = `${origin}/_static/logo-light.png`;
 
-    const [notoSansJPRes, logoRes] = await Promise.all([
+    // ✅ CLOUDFLARE WORKERS COMPATIBLE: Read logo from filesystem
+    // IMPORTANT: In Cloudflare Workers, HTTP fetch to the same origin does not work for static assets
+    // because Workers and static assets are handled by different systems.
+    // Next.js official docs recommend using fs/promises to read local assets.
+    // Reference: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
+    const [notoSansJPRes, logoData] = await Promise.all([
       fetch(
         // Static Noto Sans JP Bold (700) ONLY - NOT variable font
         // This static font is required because ImageResponse (Satori engine)
         // does not properly support fontWeight with variable fonts
         "https://fonts.gstatic.com/s/notosansjp/v55/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk75s.ttf"
       ),
-      fetch(logoUrl),
+      readFile(join(process.cwd(), "public/_static/logo-light.png"), "base64"),
     ]);
 
-    if (!notoSansJPRes.ok || !logoRes.ok) {
-      console.error(
-        `Fetch failed: NotoSansJP=${notoSansJPRes.status}, Logo=${logoRes.status}`
-      );
-      return new Response("Failed to load resources", { status: 500 });
+    if (!notoSansJPRes.ok) {
+      console.error(`Fetch failed: NotoSansJP=${notoSansJPRes.status}`);
+      return new Response("Failed to load font", { status: 500 });
     }
 
     const notoSansJP = await notoSansJPRes.arrayBuffer();
-    const logoBuffer = await logoRes.arrayBuffer();
 
     // Convert logo to base64 Data URL for ImageResponse
-    // IMPORTANT: Satori (ImageResponse engine) requires base64 Data URL for <img> src
+    // IMPORTANT: Satori (ImageResponse engine) accepts base64 Data URL for <img> src
     // Official docs: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
-    const logoBase64 = Buffer.from(logoBuffer).toString("base64");
-    const logoSrc = `data:image/png;base64,${logoBase64}`;
+    const logoSrc = `data:image/png;base64,${logoData}`;
 
     // Dynamic font size based on title length for optimal readability
     const heading =
